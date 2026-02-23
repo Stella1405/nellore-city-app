@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 import 'sign_in_screen.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -43,25 +44,33 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   void _handleCreateAccount() async {
+
+    // 1️⃣ Validate fields first
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // 2️⃣ Then check Terms
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please accept Terms & Conditions')),
+        const SnackBar(
+          content: Text('Please accept Terms & Conditions'),
+        ),
       );
       return;
     }
 
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() => _isLoading = false);
+    // 3️⃣ Proceed
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() => _isLoading = false);
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const MainScreen()),
+    );
   }
 
   Future<void> _selectDate() async {
@@ -148,14 +157,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 4),
-
-                Text(
-                  'Join CityGuide to access the full content',
-                  style: GoogleFonts.poppins(
-                      color: Colors.grey, fontSize: 13),
-                ),
-
                 const SizedBox(height: 32),
 
                 /// Full Name
@@ -178,12 +179,18 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   decoration:
                   _inputDecoration('Email', icon: Icons.email),
                   validator: (value) {
-                    if (value!.isEmpty) return 'Enter email';
-                    if (!RegExp(
-                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
-                      return 'Enter valid email';
+                    if (value == null || value.isEmpty) {
+                      return 'Enter email';
                     }
+
+                    final emailRegex = RegExp(
+                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|in|org|net)$',
+                    );
+
+                    if (!emailRegex.hasMatch(value)) {
+                      return 'Enter valid email (example@gmail.com)';
+                    }
+
                     return null;
                   },
                 ),
@@ -194,12 +201,22 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 TextFormField(
                   controller: _contactController,
                   style: const TextStyle(color: Colors.white),
-                  keyboardType: TextInputType.phone,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   decoration: _inputDecoration(
                       'Contact Number', icon: Icons.phone),
                   validator: (value) {
-                    if (value!.isEmpty) return 'Enter contact number';
-                    if (value.length < 10) return 'Enter valid number';
+                    if (value == null || value.isEmpty) {
+                      return 'Enter contact number';
+                    }
+
+                    if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+                      return 'Phone number must be exactly 10 digits';
+                    }
+
                     return null;
                   },
                 ),
@@ -263,9 +280,26 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     ),
                   ),
                   validator: (value) {
-                    if (value!.isEmpty) return 'Enter password';
-                    if (value.length < 6)
-                      return 'Minimum 6 characters';
+                    if (value == null || value.isEmpty) {
+                      return 'Enter password';
+                    }
+
+                    if (value.length < 8) {
+                      return 'Password must be at least 8 characters';
+                    }
+
+                    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                      return 'Include at least 1 capital letter';
+                    }
+
+                    if (!RegExp(r'[0-9]').hasMatch(value)) {
+                      return 'Include at least 1 number';
+                    }
+
+                    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
+                      return 'Include at least 1 special character';
+                    }
+
                     return null;
                   },
                 ),
@@ -355,72 +389,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
                 const SizedBox(height: 24),
 
-                /// OR Divider
-                Row(
-                  children: [
-                    Expanded(
-                      child: Divider(
-                          color: Colors.grey[800], thickness: 1),
-                    ),
-                    const Padding(
-                      padding:
-                      EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        'or continue with',
-                        style: TextStyle(
-                            color: Colors.grey, fontSize: 13),
-                      ),
-                    ),
-                    Expanded(
-                      child: Divider(
-                          color: Colors.grey[800], thickness: 1),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                /// Google Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: Colors.grey[700]!, width: 1.5),
-                      backgroundColor:
-                      const Color(0xFF1C1C1C),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                        BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          'assets/images/google_logo.png',
-                          width: 22,
-                          height: 22,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Continue with Google',
-                          style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight:
-                              FontWeight.w600,
-                              fontSize: 15),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
                 /// Already have account
                 Center(
                   child: GestureDetector(
@@ -429,7 +397,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (_) =>
-                            LoginScreen()),
+                            const LoginScreen()),
                       );
                     },
                     child: RichText(
@@ -443,10 +411,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           TextSpan(
                             text: 'Sign In',
                             style: GoogleFonts.poppins(
-                              color:
-                              const Color(0xFFFFC107),
-                              fontWeight:
-                              FontWeight.bold,
+                              color: const Color(0xFFFFC107),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
